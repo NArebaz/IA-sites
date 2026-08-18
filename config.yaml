@@ -1,25 +1,30 @@
-# Configurações opcionais
+# Pacote de configuração padrão para o LocalIA
+# NÃO coloque chaves reais neste arquivo no repositório público.
+# Prefira exportar variáveis de ambiente ou preencher localmente antes de executar.
+
+# Integrações
+google_places_api_key: ""        # opcional: Places API (melhor cobertura)
+google_geocode_api_key: ""       # opcional: Google Geocoding API
+
+# Saída
 output_pdf: false
-google_places_api_key: ""  # coloque sua chave aqui se for usar --use-google
-pricing:
-  package_name: "Site Profissional Básico"
-  price: "R$ 1.800,00"
-  features:
-    - "Site responsivo (até 5 páginas)"
-    - "Formulário de contato e mapa"
-    - "SEO básico"
-    - "Hospedagem por 1 ano (opcional)"
+
+# Informações do seu negócio (aparecem no rodapé dos orçamentos)
 company:
   name: "Sua Empresa"
   contact_email: "contato@seudominio.com"
   contact_phone: "+55 11 9XXXX-XXXX"
+
+# SMTP (opcional) - recomendo usar variáveis de ambiente para senha
 smtp:
-  host: ""        # ex: smtp.gmail.com
+  host: ""
   port: 587
   username: ""
-  password: ""    # recomendamos usar variáveis de ambiente em produção
+  password: ""
   use_tls: true
-  from_email: ""  # opcional, por padrão usa username
+  from_email: ""
 
+# Avaliador de sites
 evaluator:
   timeout: 6
+  user_agent: "LocalIA/1.0 (+seu-email)"

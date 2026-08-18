@@ -1,16 +1,17 @@
 import smtplib
-import os
 from email.message import EmailMessage
+import os
+from typing import Optional, Dict
 import logging
 
 logger = logging.getLogger("localia.mailer")
 
+
 class Mailer:
-    def __init__(self, smtp_cfg=None):
-        # smtp_cfg: dict with host, port, username, password, use_tls, from_email
+    def __init__(self, smtp_cfg: Optional[Dict[str, Any]] = None):
         self.cfg = smtp_cfg or {}
 
-    def send_quote(self, to_email, subject, html_body, attachment_path=None):
+    def send_quote(self, to_email: str, subject: str, html_body: str, attachment_path: Optional[str] = None) -> None:
         host = self.cfg.get("host")
         port = int(self.cfg.get("port", 587))
         user = self.cfg.get("username")
@@ -28,18 +29,14 @@ class Mailer:
         msg.set_content("Este e-mail contém um orçamento em HTML. Verifique a versão em HTML ou anexo PDF.")
         msg.add_alternative(html_body, subtype="html")
 
-        if attachment_path:
+        if attachment_path and os.path.exists(attachment_path):
             try:
                 with open(attachment_path, "rb") as f:
                     data = f.read()
-                maintype = "application"
-                subtype = "pdf"
-                filename = os.path.basename(attachment_path)
-                msg.add_attachment(data, maintype=maintype, subtype=subtype, filename=filename)
-            except Exception as e:
-                logger.exception("Não foi possível anexar arquivo %s: %s", attachment_path, e)
+                msg.add_attachment(data, maintype="application", subtype="pdf", filename=os.path.basename(attachment_path))
+            except Exception:
+                logger.exception("Falha ao anexar arquivo %s", attachment_path)
 
-        # send
         if use_tls:
             server = smtplib.SMTP(host, port, timeout=20)
             try:

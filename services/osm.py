@@ -1,7 +1,20 @@
+from typing import Dict, List, Optional, Tuple
+
 import requests
+
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 
-def find_businesses_osm(lat, lon, radius=1000):
+
+def _safe_post(query: str, timeout: int = 30) -> Optional[Dict]:
+    try:
+        r = requests.post(OVERPASS_URL, data={"data": query}, timeout=timeout)
+        r.raise_for_status()
+        return r.json()
+    except Exception:
+        return None
+
+
+def find_businesses_osm(lat: float, lon: float, radius: int = 1000) -> List[Dict]:
     query = f"""
     [out:json][timeout:25];
     (
@@ -12,12 +25,12 @@ def find_businesses_osm(lat, lon, radius=1000):
     );
     out center tags;
     """
-    r = requests.post(OVERPASS_URL, data={"data": query}, timeout=30)
-    r.raise_for_status()
-    payload = r.json()
-    results = []
-    for el in payload.get("elements", []):
-        tags = el.get("tags", {})
+    data = _safe_post(query)
+    if not data:
+        return []
+    results: List[Dict] = []
+    for el in data.get("elements", []):
+        tags = el.get("tags", {}) or {}
         name = tags.get("name")
         if not name:
             continue
@@ -25,7 +38,7 @@ def find_businesses_osm(lat, lon, radius=1000):
             tags.get("addr:street"),
             tags.get("addr:housenumber"),
             tags.get("addr:city"),
-            tags.get("addr:postcode")
+            tags.get("addr:postcode"),
         ]))
         results.append({
             "id": el.get("id"),
@@ -34,6 +47,6 @@ def find_businesses_osm(lat, lon, radius=1000):
             "phone": tags.get("phone") or tags.get("contact:phone"),
             "email": tags.get("email") or tags.get("contact:email"),
             "website": tags.get("website") or tags.get("contact:website"),
-            "raw_tags": tags
+            "raw_tags": tags,
         })
     return results

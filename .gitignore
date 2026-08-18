@@ -1,0 +1,12 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+.DS_Store
+*.sqlite3
+quotes/
+localia-project.zip
+*.log
+*.pdf
