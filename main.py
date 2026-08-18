@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-main.py - CLI entrypoint
+main.py - CLI entrypoint (updated with email sending)
 """
 import argparse
 import logging
@@ -10,6 +10,7 @@ from services.osm import find_businesses_osm
 from services.google_places import find_businesses_google
 from services.evaluator import WebsiteEvaluator
 from services.quote import QuoteRenderer
+from services.mailer import Mailer
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import csv
 from pathlib import Path
@@ -17,13 +18,15 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("localia")
 
+
 def load_config(path="config.yaml"):
     if not os.path.exists(path):
         return {}
     with open(path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
 
-def process_business(business, evaluator, renderer, out_dir, pricing):
+
+def process_business(business, evaluator, renderer, out_dir, pricing, company):
     website = business.get("website")
     has_prof = evaluator.is_professional(website)
     if has_prof:
@@ -31,7 +34,7 @@ def process_business(business, evaluator, renderer, out_dir, pricing):
         return None
     fname = f"{business.get('name','business')}_{business.get('id','')}.html".replace(" ", "_")
     outpath = os.path.join(out_dir, fname)
-    renderer.render(business, outpath, pricing)
+    renderer.render(business, outpath, pricing, company)
     return {
         "name": business.get("name"),
         "address": business.get("address", ""),
@@ -40,6 +43,7 @@ def process_business(business, evaluator, renderer, out_dir, pricing):
         "website_tag": website or "",
         "quote_file": outpath
     }
+
 
 def write_csv(rows, path):
     if not rows:
@@ -51,6 +55,7 @@ def write_csv(rows, path):
         for r in rows:
             writer.writerow(r)
 
+
 def cli():
     p = argparse.ArgumentParser(description="LocalIA - detectar comércios sem site profissional e gerar orçamentos")
     p.add_argument("--lat", type=float, required=True, help="Latitude do centro de busca")
@@ -60,6 +65,7 @@ def cli():
     p.add_argument("--use-google", action="store_true", help="Usar Google Places (requer config.yaml with key)")
     p.add_argument("--workers", type=int, default=8, help="Número de threads para checagens")
     p.add_argument("--preview", action="store_true", help="Somente listar resultados (não enviar e-mail)")
+    p.add_argument("--send-email", action="store_true", help="Enviar orçamentos por e-mail quando o estabelecimento tiver email")
     p.add_argument("--config", default="config.yaml", help="Caminho para config.yaml")
     args = p.parse_args()
 
@@ -74,6 +80,7 @@ def cli():
             "Hospedagem por 1 ano (opcional)"
         ]
     })
+    company = cfg.get("company", {"name": "Sua Empresa", "contact_email": "contato@seudominio.com", "contact_phone": "+55 11 9XXXX-XXXX"})
 
     Path(args.out).mkdir(parents=True, exist_ok=True)
 
@@ -91,14 +98,32 @@ def cli():
     evaluator = WebsiteEvaluator(cfg.get("evaluator", {}))
     renderer = QuoteRenderer(template_path="templates/quote_template.html", pdf=cfg.get("output_pdf", False))
 
+    mailer = None
+    if args.send_email:
+        smtp_cfg = cfg.get("smtp", {})
+        mailer = Mailer(smtp_cfg)
+
     rows = []
     with ThreadPoolExecutor(max_workers=args.workers) as ex:
-        futures = {ex.submit(process_business, b, evaluator, renderer, args.out, pricing): b for b in businesses}
+        futures = {ex.submit(process_business, b, evaluator, renderer, args.out, pricing, company): b for b in businesses}
         for fut in as_completed(futures):
             try:
                 res = fut.result()
                 if res:
                     rows.append(res)
+                    # if enabled and has email, send
+                    if args.send_email and res.get("email"):
+                        try:
+                            html_path = res.get("quote_file")
+                            pdf_path = None
+                            if cfg.get("output_pdf", False):
+                                pdf_path = html_path.rsplit('.',1)[0] + '.pdf'
+                            with open(html_path, 'r', encoding='utf-8') as fh:
+                                html_body = fh.read()
+                            subject = f"Orçamento - {res.get('name')} - {company.get('name')}"
+                            mailer.send_quote(res.get('email'), subject, html_body, attachment_path=pdf_path)
+                        except Exception as e:
+                            logger.exception("Erro enviando e-mail para %s: %s", res.get('email'), e)
             except Exception as e:
                 logger.exception("Erro processando %s: %s", futures[fut].get("name"), e)
 

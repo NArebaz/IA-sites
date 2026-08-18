@@ -9,5 +9,17 @@ pricing:
     - "Formulário de contato e mapa"
     - "SEO básico"
     - "Hospedagem por 1 ano (opcional)"
+company:
+  name: "Sua Empresa"
+  contact_email: "contato@seudominio.com"
+  contact_phone: "+55 11 9XXXX-XXXX"
+smtp:
+  host: ""        # ex: smtp.gmail.com
+  port: 587
+  username: ""
+  password: ""    # recomendamos usar variáveis de ambiente em produção
+  use_tls: true
+  from_email: ""  # opcional, por padrão usa username
+
 evaluator:
   timeout: 6
