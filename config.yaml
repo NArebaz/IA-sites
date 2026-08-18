@@ -1,0 +1,13 @@
+# Configurações opcionais
+output_pdf: false
+google_places_api_key: ""  # coloque sua chave aqui se for usar --use-google
+pricing:
+  package_name: "Site Profissional Básico"
+  price: "R$ 1.800,00"
+  features:
+    - "Site responsivo (até 5 páginas)"
+    - "Formulário de contato e mapa"
+    - "SEO básico"
+    - "Hospedagem por 1 ano (opcional)"
+evaluator:
+  timeout: 6

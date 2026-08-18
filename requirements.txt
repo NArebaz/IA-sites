@@ -1,0 +1,5 @@
+requests
+jinja2
+beautifulsoup4
+PyYAML
+weasyprint  # opcional para PDFs (requer dependências do SO)

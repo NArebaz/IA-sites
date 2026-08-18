@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <title>Orçamento - {{ business.name }}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; color:#222 }
+    header { border-bottom: 1px solid #ddd; margin-bottom: 20px; padding-bottom:10px }
+    h1 { color:#0a5 }
+    .meta { margin-bottom: 20px }
+    .features { margin-top: 10px }
+    footer { margin-top: 40px; font-size:0.9em; color:#666 }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Orçamento: {{ pricing.package_name }}</h1>
+    <div>Para: <strong>{{ business.name }}</strong></div>
+    <div>Endereço: {{ business.address or "—" }}</div>
+    <div>Telefone: {{ business.phone or "—" }} | Email: {{ business.email or "—" }}</div>
+  </header>
+
+  <section>
+    <h2>Proposta</h2>
+    <p>Apresentamos uma proposta para criação de um site profissional para o estabelecimento acima.</p>
+    <h3>Pacote</h3>
+    <ul>
+      {% for f in pricing.features %}
+      <li>{{ f }}</li>
+      {% endfor %}
+    </ul>
+    <p><strong>Valor:</strong> {{ pricing.price }}</p>
+
+    <div class="features">
+      <p>Observações: Entrega em 10-15 dias úteis após aprovação. Pagamento: 50% entrada, 50% entrega.</p>
+    </div>
+  </section>
+
+  <footer>
+    <div>Atenciosamente,</div>
+    <div><strong>Sua Empresa</strong> — contato@seudominio.com — +55 11 9XXXX-XXXX</div>
+  </footer>
+</body>
+</html>
