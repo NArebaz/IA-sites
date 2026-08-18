@@ -38,7 +38,7 @@
 
   <footer>
     <div>Atenciosamente,</div>
-    <div><strong>Sua Empresa</strong> — contato@seudominio.com — +55 11 9XXXX-XXXX</div>
+    <div><strong>{{ company.name or 'Sua Empresa' }}</strong> — {{ company.contact_email or 'contato@seudominio.com' }} — {{ company.contact_phone or '+55 11 9XXXX-XXXX' }}</div>
   </footer>
 </body>
 </html>

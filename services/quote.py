@@ -12,9 +12,10 @@ class QuoteRenderer:
         self.env = Environment(loader=FileSystemLoader("./"))
         self.pdf = pdf and WEASY
 
-    def render(self, business, out_html_path, pricing):
+    def render(self, business, out_html_path, pricing, company=None):
         tpl = self.env.get_template(self.template_path)
-        html = tpl.render(business=business, pricing=pricing)
+        html = tpl.render(business=business, pricing=pricing, company=company or {})
+        os.makedirs(os.path.dirname(out_html_path) or '.', exist_ok=True)
         with open(out_html_path, "w", encoding="utf-8") as f:
             f.write(html)
         if self.pdf:

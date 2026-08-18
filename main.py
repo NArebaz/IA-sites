@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-main.py - CLI entrypoint (updated with email sending)
+main.py - CLI entrypoint (updated with address geocoding)
 """
 import argparse
 import logging
@@ -11,6 +11,7 @@ from services.google_places import find_businesses_google
 from services.evaluator import WebsiteEvaluator
 from services.quote import QuoteRenderer
 from services.mailer import Mailer
+from services.geocode import geocode_address
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import csv
 from pathlib import Path
@@ -58,8 +59,9 @@ def write_csv(rows, path):
 
 def cli():
     p = argparse.ArgumentParser(description="LocalIA - detectar comércios sem site profissional e gerar orçamentos")
-    p.add_argument("--lat", type=float, required=True, help="Latitude do centro de busca")
-    p.add_argument("--lon", type=float, required=True, help="Longitude do centro de busca")
+    p.add_argument("--lat", type=float, help="Latitude do centro de busca")
+    p.add_argument("--lon", type=float, help="Longitude do centro de busca")
+    p.add_argument("--address", type=str, help="Endereço para geocodificação (ex: 'R. Exemplo, 123, São Paulo')")
     p.add_argument("--radius", type=int, default=1000, help="Raio em metros")
     p.add_argument("--out", default="quotes", help="Diretório de saída")
     p.add_argument("--use-google", action="store_true", help="Usar Google Places (requer config.yaml with key)")
@@ -82,6 +84,23 @@ def cli():
     })
     company = cfg.get("company", {"name": "Sua Empresa", "contact_email": "contato@seudominio.com", "contact_phone": "+55 11 9XXXX-XXXX"})
 
+    # If address provided, geocode it (Google Geocode API if configured, otherwise Nominatim)
+    lat = args.lat
+    lon = args.lon
+    if args.address and (lat is None or lon is None):
+        api_key = cfg.get("google_geocode_api_key") or cfg.get("google_places_api_key")
+        logger.info("Geocoding address: %s", args.address)
+        res = geocode_address(args.address, api_key=api_key)
+        if not res:
+            logger.error("Não foi possível geocodificar o endereço fornecido. Saindo.")
+            return
+        lat, lon = res
+        logger.info("Endereço geocodificado: lat=%s lon=%s", lat, lon)
+
+    if lat is None or lon is None:
+        logger.error("Latitude/longitude não fornecidas. Use --lat/--lon ou --address para geocodificação.")
+        return
+
     Path(args.out).mkdir(parents=True, exist_ok=True)
 
     if args.use_google:
@@ -89,9 +108,9 @@ def cli():
         if not api_key:
             logger.error("Google Places solicitado, mas google_places_api_key ausente em %s", args.config)
             return
-        businesses = find_businesses_google(args.lat, args.lon, args.radius, api_key)
+        businesses = find_businesses_google(lat, lon, args.radius, api_key)
     else:
-        businesses = find_businesses_osm(args.lat, args.lon, args.radius)
+        businesses = find_businesses_osm(lat, lon, args.radius)
 
     logger.info("Encontrados %d candidatos", len(businesses))
 
